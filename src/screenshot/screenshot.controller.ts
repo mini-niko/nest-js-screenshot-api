@@ -5,19 +5,21 @@ import {
   Query,
   Res,
 } from '@nestjs/common';
-import { PlaywrightService } from './playwright.service';
 import type { Response } from 'express';
+import { ScreenshotService } from './screenshot.service';
 
 @Controller('api')
 export class ScreenshotController {
-  constructor(private readonly pw: PlaywrightService) {}
+  constructor(private readonly screenshotService: ScreenshotService) {}
 
   @Get('screenshot')
-  async screenshot(@Query('url') url: string, @Res() response: Response) {
-    if (!url || !this.isValidUrl(url))
-      throw new BadRequestException('URL inválida');
+  async screenshot(
+    @Query('url') url: string,
+    @Res() response: Response,
+  ): Promise<void> {
+    if (!url) throw new BadRequestException('URL inválida');
 
-    const buffer = await this.pw.screenshot(url);
+    const buffer = await this.screenshotService.takeByUrl(url);
 
     response.setHeader('Content-Type', 'image/png');
     response.setHeader(
@@ -26,14 +28,5 @@ export class ScreenshotController {
     );
 
     response.send(buffer);
-  }
-
-  private isValidUrl(url: string): boolean {
-    try {
-      const parsed = new URL(url);
-      return ['http:', 'https:'].includes(parsed.protocol);
-    } catch {
-      return false;
-    }
   }
 }

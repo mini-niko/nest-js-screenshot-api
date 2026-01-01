@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ScreenshotController } from './screenshot.controller';
-import { PlaywrightService } from './playwright.service';
+import { BrowserService } from '../browser/browser.service';
+import { BrowserModule } from 'src/browser/browser.module';
+import { ScreenshotService } from './screenshot.service';
 
 @Module({
-  imports: [],
+  imports: [BrowserModule],
   controllers: [ScreenshotController],
-  providers: [PlaywrightService],
+  providers: [BrowserService, ScreenshotService],
 })
 export class ScreenshotModule {}

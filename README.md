@@ -57,8 +57,9 @@ npm run start:dev
 | format        | string | ❌ Não      | Formato da imagem de saída         | `png`, `jpeg`           | `jpeg`        |
 | device_width  | number | ❌ Não      | Largura do viewport do dispositivo | 1-3840                  | 1920          |
 | device_height | number | ❌ Não      | Altura do viewport do dispositivo  | 1-3840                  | 1080          |
-| clip_x        | number | ❌ Não      | Posição X do recorte (em pixels)   | 1-3840                  | 0             |
-| clip_y        | number | ❌ Não      | Posição Y do recorte (em pixels)   | 1-3840                  | 0             |
+| delay         | number | ❌ Não      | Atraso antes da captura (ms)       | 0-30000                 | 0             |
+| clip_x        | number | ❌ Não      | Posição X do recorte (em pixels)   | 0-3840                  | 0             |
+| clip_y        | number | ❌ Não      | Posição Y do recorte (em pixels)   | 0-3840                  | 0             |
 | clip_width    | number | ❌ Não      | Largura do recorte (em pixels)     | 1-3840                  | device_width  |
 | clip_height   | number | ❌ Não      | Altura do recorte (em pixels)      | 1-3840                  | device_height |
 
@@ -80,6 +81,18 @@ curl "http://localhost:3000/api/screenshot?url=https://nestjs.com&format=png&dev
 
 ```bash
 curl "http://localhost:3000/api/screenshot?url=https://github.com&format=png&device_width=1920&device_height=1080&clip_x=100&clip_y=100&clip_width=800&clip_height=600" --output github-crop.png
+```
+
+**4. Captura com atraso (delay) de 1 segundo:**
+
+```bash
+curl "http://localhost:3000/api/screenshot?url=https://example.com&delay=1000" --output delayed-screenshot.jpeg
+```
+
+**5. Captura combinando todos os parâmetros:**
+
+```bash
+curl "http://localhost:3000/api/screenshot?url=https://example.com&format=png&device_width=1280&device_height=720&delay=500&clip_x=100&clip_y=100&clip_width=800&clip_height=600" --output full-params.png
 ```
 
 #### Exemplo de Resposta

@@ -172,5 +172,56 @@ describe('ScreenshotController (e2e)', () => {
           .expect(200);
       });
     });
+
+    describe('Delay Parameter', () => {
+      it('with valid delay should return 200', () => {
+        const url = 'https://example.com';
+        return request(app.getHttpServer())
+          .get(`/api/screenshot?url=${url}&delay=1000`)
+          .expect(200);
+      });
+
+      it('with delay=0 should work (default)', () => {
+        const url = 'https://example.com';
+        return request(app.getHttpServer())
+          .get(`/api/screenshot?url=${url}&delay=0`)
+          .expect(200);
+      });
+
+      it('with delay above maximum should return 400', () => {
+        const url = 'https://example.com';
+        return request(app.getHttpServer())
+          .get(`/api/screenshot?url=${url}&delay=35000`)
+          .expect(400);
+      });
+
+      it('with negative delay should return 400', () => {
+        const url = 'https://example.com';
+        return request(app.getHttpServer())
+          .get(`/api/screenshot?url=${url}&delay=-1`)
+          .expect(400);
+      });
+    });
+
+    describe('Combined Parameters', () => {
+      it('with all parameters combined should work', () => {
+        const url = 'https://example.com';
+        return request(app.getHttpServer())
+          .get(
+            `/api/screenshot?url=${url}&format=png&device_width=1280&device_height=720&delay=500&clip_x=100&clip_y=100&clip_width=800&clip_height=600`,
+          )
+          .expect(200)
+          .expect('Content-Type', 'image/png');
+      });
+
+      it('with viewport and clip parameters should work', () => {
+        const url = 'https://example.com';
+        return request(app.getHttpServer())
+          .get(
+            `/api/screenshot?url=${url}&device_width=1920&device_height=1080&clip_x=50&clip_y=50&clip_width=1000&clip_height=800`,
+          )
+          .expect(200);
+      });
+    });
   });
 });

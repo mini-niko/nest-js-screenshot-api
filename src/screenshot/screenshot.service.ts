@@ -20,10 +20,12 @@ export class ScreenshotService {
           timeout: 15_000,
         });
 
+        if (options.delay)
+          await new Promise((res) => setTimeout(res, options.delay));
+
         return await page.screenshot({
-          type: 'png',
+          type: options.format,
           clip: options.clip,
-          fullPage: !options.clip,
         });
       } finally {
         await context.close();

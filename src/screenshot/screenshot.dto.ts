@@ -65,10 +65,18 @@ export class ScreenshotQueryDto {
   @Min(1)
   @Max(3840)
   clip_height?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(30000)
+  delay?: number;
 }
 
 export class ScreenshotOptionsDto {
   format: 'png' | 'jpeg';
+  delay: number;
   viewport: {
     width: number;
     height: number;

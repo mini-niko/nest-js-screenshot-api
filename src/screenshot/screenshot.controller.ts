@@ -35,9 +35,12 @@ export class ScreenshotController {
       height: query.device_height ?? 1080,
     };
 
+    const delay = query.delay || 0;
+
     const options: ScreenshotOptionsDto = {
       format: query.format ?? 'jpeg',
       viewport,
+      delay,
     };
 
     const hasClip =

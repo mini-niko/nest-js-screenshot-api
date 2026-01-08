@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { BrowserService } from 'src/browser/browser.service';
+import { ScreenshotOptionsDto } from './screenshot.dto';
 
 @Injectable()
 export class ScreenshotService {
   constructor(private readonly browserService: BrowserService) {}
 
-  async takeByUrl(url: string): Promise<Buffer> {
+  async takeByUrl(url: string, options: ScreenshotOptionsDto): Promise<Buffer> {
     return await this.browserService.execute(async (browser) => {
       const context = await browser.newContext({
-        viewport: { width: 1280, height: 720 },
+        viewport: options.viewport,
       });
 
       const page = await context.newPage();
@@ -21,7 +22,8 @@ export class ScreenshotService {
 
         return await page.screenshot({
           type: 'png',
-          fullPage: true,
+          clip: options.clip,
+          fullPage: !options.clip,
         });
       } finally {
         await context.close();

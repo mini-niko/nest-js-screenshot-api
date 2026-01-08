@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { ScreenshotModule } from '../src/screenshot/screenshot.module';
+import { ScreenshotModule } from 'src/screenshot/screenshot.module';
 
 describe('ScreenshotController (e2e)', () => {
   let app: INestApplication<App>;
@@ -13,26 +13,164 @@ describe('ScreenshotController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        transform: true,
+        forbidNonWhitelisted: false,
+      }),
+    );
     await app.init();
   });
 
   describe('/api/screenshot (GET)', () => {
-    it('without URL should return 400', () => {
-      return request(app.getHttpServer()).get('/api/screenshot').expect(400);
+    describe('URL Validation', () => {
+      it('without URL should return 400', () => {
+        return request(app.getHttpServer())
+          .get('/api/screenshot')
+          .expect(400)
+          .expect((res) => {
+            expect(res.body.statusCode).toBe(400);
+            expect(res.body.message[0]).toContain('url');
+          });
+      });
+
+      it('with invalid URL should return 400', () => {
+        return request(app.getHttpServer())
+          .get('/api/screenshot?url=invalid_url')
+          .expect(400)
+          .expect((res) => {
+            expect(res.body.statusCode).toBe(400);
+            expect(res.body.message[0]).toContain('url');
+          });
+      });
+
+      it('with URL missing protocol should return 400', () => {
+        return request(app.getHttpServer())
+          .get('/api/screenshot?url=example.com')
+          .expect(400);
+      });
     });
 
-    it('with invalid URL should return 400', () => {
-      return request(app.getHttpServer())
-        .get('/api/screenshot?url=invalid_url')
-        .expect(400);
+    describe('Format Parameter', () => {
+      it('with valid URL and format=png should return 200 with image/png', () => {
+        const url = 'https://example.com';
+        return request(app.getHttpServer())
+          .get(`/api/screenshot?url=${url}&format=png`)
+          .expect(200)
+          .expect('Content-Type', 'image/png');
+      });
+
+      it('with valid URL and format=jpeg should return 200 with image/jpeg', () => {
+        const url = 'https://example.com';
+        return request(app.getHttpServer())
+          .get(`/api/screenshot?url=${url}&format=jpeg`)
+          .expect(200)
+          .expect('Content-Type', 'image/jpeg');
+      });
+
+      it('with invalid format should return 400', () => {
+        const url = 'https://example.com';
+        return request(app.getHttpServer())
+          .get(`/api/screenshot?url=${url}&format=gif`)
+          .expect(400);
+      });
     });
 
-    it('with valid URL should return 200', () => {
-      const normalizedUrl = 'https%3A%2F%2Fwww.google.com%2F';
+    describe('Viewport Parameters', () => {
+      it('with valid viewport dimensions should return 200', () => {
+        const url = 'https://example.com';
+        return request(app.getHttpServer())
+          .get(`/api/screenshot?url=${url}&device_width=1280&device_height=720`)
+          .expect(200);
+      });
 
-      return request(app.getHttpServer())
-        .get(`/api/screenshot?url=${normalizedUrl}`)
-        .expect(200);
+      it('with viewport width below minimum should return 400', () => {
+        const url = 'https://example.com';
+        return request(app.getHttpServer())
+          .get(`/api/screenshot?url=${url}&device_width=0`)
+          .expect(400);
+      });
+
+      it('with viewport width above maximum should return 400', () => {
+        const url = 'https://example.com';
+        return request(app.getHttpServer())
+          .get(`/api/screenshot?url=${url}&device_width=4000`)
+          .expect(400);
+      });
+
+      it('with non-integer viewport dimensions should return 400', () => {
+        const url = 'https://example.com';
+        return request(app.getHttpServer())
+          .get(`/api/screenshot?url=${url}&device_width=abc`)
+          .expect(400);
+      });
+    });
+
+    describe('Clip Parameters', () => {
+      it('with valid clip parameters should return 200', () => {
+        const url = 'https://example.com';
+        return request(app.getHttpServer())
+          .get(
+            `/api/screenshot?url=${url}&clip_x=100&clip_y=100&clip_width=800&clip_height=600`,
+          )
+          .expect(200);
+      });
+
+      it('with clip width exceeding viewport should be automatically adjusted', () => {
+        const url = 'https://example.com';
+        return request(app.getHttpServer())
+          .get(
+            `/api/screenshot?url=${url}&device_width=1000&device_height=1000&clip_x=0&clip_y=0&clip_width=2000&clip_height=2000`,
+          )
+          .expect(200);
+      });
+
+      it('with invalid clip parameters should return 400', () => {
+        const url = 'https://example.com';
+        return request(app.getHttpServer())
+          .get(`/api/screenshot?url=${url}&clip_x=-1`)
+          .expect(400);
+      });
+    });
+
+    describe('Response Headers and Content', () => {
+      it('should return correct Content-Type header based on format', () => {
+        const url = 'https://example.com';
+        return request(app.getHttpServer())
+          .get(`/api/screenshot?url=${url}&format=png`)
+          .expect(200)
+          .expect('Content-Type', 'image/png')
+          .expect('Content-Disposition', /inline; filename="screenshot.png"/);
+      });
+
+      it('should return image buffer in response body', () => {
+        const url = 'https://example.com';
+        return request(app.getHttpServer())
+          .get(`/api/screenshot?url=${url}`)
+          .expect(200)
+          .then((res) => {
+            expect(Buffer.isBuffer(res.body)).toBe(true);
+            expect(res.body.length).toBeGreaterThan(0);
+          });
+      });
+    });
+
+    describe('Edge Cases', () => {
+      it('with URL containing special characters should work', () => {
+        const url = 'https://example.com/path?query=value&other=123';
+        const encodedUrl = encodeURIComponent(url);
+        return request(app.getHttpServer())
+          .get(`/api/screenshot?url=${encodedUrl}`)
+          .expect(200);
+      });
+
+      it('with very long URL should work', () => {
+        const longUrl = 'https://example.com/' + 'a'.repeat(1000);
+        return request(app.getHttpServer())
+          .get(`/api/screenshot?url=${longUrl}`)
+          .expect(200);
+      });
     });
   });
 });

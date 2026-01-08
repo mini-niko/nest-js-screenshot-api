@@ -11,8 +11,12 @@ import {
 import { Type } from 'class-transformer';
 
 export class ScreenshotQueryDto {
-  @IsUrl()
   @IsNotEmpty()
+  @IsUrl({
+    require_protocol: true,
+    require_valid_protocol: true,
+    protocols: ['http', 'https'],
+  })
   url: string;
 
   @IsOptional()
@@ -37,14 +41,14 @@ export class ScreenshotQueryDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(1)
+  @Min(0)
   @Max(3840)
   clip_x?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(1)
+  @Min(0)
   @Max(3840)
   clip_y?: number;
 

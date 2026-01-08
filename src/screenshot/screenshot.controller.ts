@@ -13,6 +13,7 @@ export class ScreenshotController {
     @Res() response: Response,
   ): Promise<void> {
     const { url } = query;
+
     const options = this.getOptionsByQuery(query);
 
     const buffer = await this.screenshotService.takeByUrl(url, options);

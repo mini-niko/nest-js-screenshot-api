@@ -47,26 +47,49 @@ npm run start:dev
 
 ### Endpoint Principal
 
-**GET** `/api/screenshot?url={url_da_pagina}`
+**GET** `/api/screenshot`
 
 #### Parâmetros
 
-| Parâmetro | Tipo   | Obrigatório | Descrição                   |
-| --------- | ------ | ----------- | --------------------------- |
-| url       | string | ✅ Sim      | URL da página para capturar |
+| Parâmetro     | Tipo   | Obrigatório | Descrição                          | Valores Válidos         | Padrão        |
+| ------------- | ------ | ----------- | ---------------------------------- | ----------------------- | ------------- |
+| url           | string | ✅ Sim      | URL da página para capturar        | URL válida (http/https) | -             |
+| format        | string | ❌ Não      | Formato da imagem de saída         | `png`, `jpeg`           | `jpeg`        |
+| device_width  | number | ❌ Não      | Largura do viewport do dispositivo | 1-3840                  | 1920          |
+| device_height | number | ❌ Não      | Altura do viewport do dispositivo  | 1-3840                  | 1080          |
+| clip_x        | number | ❌ Não      | Posição X do recorte (em pixels)   | 1-3840                  | 0             |
+| clip_y        | number | ❌ Não      | Posição Y do recorte (em pixels)   | 1-3840                  | 0             |
+| clip_width    | number | ❌ Não      | Largura do recorte (em pixels)     | 1-3840                  | device_width  |
+| clip_height   | number | ❌ Não      | Altura do recorte (em pixels)      | 1-3840                  | device_height |
 
-#### Exemplo de Requisição
+#### Exemplos de Requisição
+
+**1. Captura básica com URL:**
 
 ```bash
-curl "http://localhost:3000/api/screenshot?url=https://example.com"
+curl "http://localhost:3000/api/screenshot?url=https://example.com" --output screenshot.jpeg
+```
+
+**2. Captura com formato PNG e viewport personalizado:**
+
+```bash
+curl "http://localhost:3000/api/screenshot?url=https://nestjs.com&format=png&device_width=1280&device_height=720" --output nestjs.png
+```
+
+**3. Captura com recorte específico:**
+
+```bash
+curl "http://localhost:3000/api/screenshot?url=https://github.com&format=png&device_width=1920&device_height=1080&clip_x=100&clip_y=100&clip_width=800&clip_height=600" --output github-crop.png
 ```
 
 #### Exemplo de Resposta
 
-A API retorna uma imagem PNG diretamente no corpo da resposta com os seguintes headers:
+A API retorna uma imagem binária diretamente no corpo da resposta com os seguintes headers:
 
-- `Content-Type: image/png`
+- `Content-Type: image/png` ou `image/jpeg` (dependendo do formato)
 - `Content-Disposition: inline; filename="screenshot.png"`
+
+> **Nota:** O formato padrão é JPEG, mas o header Content-Type será ajustado automaticamente de acordo com o parâmetro `format`.
 
 ### Validação de URL
 
@@ -79,42 +102,32 @@ A API valida automaticamente as URLs fornecidas:
 
 ### Configurações do Playwright
 
-As configurações do navegador podem ser ajustadas no arquivo `src/screenshot/playwright.service.ts`:
-
-```typescript
-// Configuração atual
-this.browser = await chromium.launch({
-  headless: true,
-  args: ['--no-sandbox', '--disable-setuid-sandbox'],
-});
-
-// Configuração do viewport
-const context = await this.browser.newContext({
-  viewport: { width: 1280, height: 720 },
-});
-```
+As configurações do navegador são gerenciadas pelo `BrowserService` em `src/browser/browser.service.ts`. O serviço de screenshot utiliza essas configurações para criar contextos de página.
 
 ### Opções de Screenshot
 
-As opções de captura podem ser personalizadas:
+As opções de captura são definidas no controlador (`src/screenshot/screenshot.controller.ts`) e incluem:
 
-```typescript
-await page.screenshot({
-  type: 'png', // Formato da imagem
-  fullPage: true, // Captura página completa
-  // quality: 80,       // Qualidade (para JPEG)
-  // omitBackground: true // Fundo transparente
-});
-```
+- **Viewport padrão**: 1920x1080 pixels
+- **Formato padrão**: JPEG
+- **Timeout de página**: 15 segundos (networkidle)
+- **Captura completa**: Quando nenhum recorte é especificado
+- **Recorte personalizado**: Quando parâmetros de recorte são fornecidos
+
+Para personalizar o comportamento padrão, modifique o método `getOptionsByQuery` no controlador.
 
 ## 📦 Estrutura do Projeto
 
 ```
 src/
+├── browser/
+│   ├── browser.module.ts        # Módulo do navegador
+│   └── browser.service.ts       # Serviço de gerenciamento do navegador
 ├── screenshot/
-│   ├── screenshot.controller.ts  # Controlador da API
-│   ├── playwright.service.ts     # Serviço de captura de screenshots
-│   └── screenshot.module.ts     # Módulo Nest.js
+│   ├── screenshot.controller.ts # Controlador da API
+│   ├── screenshot.dto.ts        # DTOs de validação e opções
+│   ├── screenshot.module.ts    # Módulo de screenshot
+│   └── screenshot.service.ts    # Serviço de captura de screenshots
 └── main.ts                      # Ponto de entrada da aplicação
 ```
 
@@ -175,18 +188,20 @@ npm run test:e2e
 
 ## 📝 Notas
 
-- A aplicação usa viewport padrão de 1280x720 pixels
-- O timeout padrão para carregamento de páginas é de 15 segundos
-- O formato de saída padrão é PNG
-- A aplicação captura a página completa (full page) por padrão
+- A aplicação usa viewport padrão de 1920x1080 pixels
+- O timeout padrão para carregamento de páginas é de 15 segundos (networkidle)
+- O formato de saída padrão é JPEG
+- A aplicação captura a página completa quando nenhum recorte é especificado
+- Os parâmetros de recorte permitem capturar regiões específicas da página
 
 ## 🔧 Personalização
 
 Para personalizar o comportamento:
 
-1. **Tamanho do viewport**: Modifique as dimensões em `playwright.service.ts`
-2. **Timeout**: Ajuste o valor de timeout na chamada `page.goto()`
-3. **Formato de saída**: Altere o tipo de screenshot para 'jpeg' ou 'png'
+1. **Tamanho do viewport**: Modifique os valores padrão no método `getOptionsByQuery` em `src/screenshot/screenshot.controller.ts`
+2. **Timeout**: Ajuste o valor de timeout na chamada `page.goto()` em `src/screenshot/screenshot.service.ts`
+3. **Formato padrão**: Altere o valor padrão do parâmetro `format` no controlador
+4. **Validação de parâmetros**: Modifique as regras de validação em `src/screenshot/screenshot.dto.ts`
 
 ## 📚 Documentação da API
 

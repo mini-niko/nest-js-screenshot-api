@@ -17,10 +17,12 @@ export class ScreenshotController {
 
     const buffer = await this.screenshotService.takeByUrl(url, options);
 
-    response.setHeader('Content-Type', 'image/png');
+    const imageType = options.format;
+
+    response.setHeader('Content-Type', `image/${imageType}`);
     response.setHeader(
       'Content-Disposition',
-      'inline; filename="screenshot.png"',
+      `inline; filename="screenshot.${imageType}"`,
     );
 
     response.send(buffer);

@@ -1,0 +1,31 @@
+# Ignorar arquivos de desenvolvimento e build
+.git
+.gitignore
+.node_modules
+dist
+coverage
+
+# Arquivos de configuração local
+.nvmrc
+.tool-versions
+.prettierrc
+.editorconfig
+eslint.config.mjs
+
+# Arquivos de teste
+test
+
+# Arquivos de documentação e configuração
+README.md
+
+# Arquivos de log e temporários
+*.log
+*.tmp
+*.swp
+
+# Arquivos de IDE
+.vscode
+.idea
+
+# Cache e arquivos desnecessários
+.DS_Store
